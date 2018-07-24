@@ -150,7 +150,7 @@ function sendNotification($results) {
  */
 function slack($results)
 {
-	$message = "\n*OPEN PRACTICAL SLOTS AT SSDC :car:*\n\n";
+	$message = "\n*OPEN PRACTICAL SLOTS AT SSDC*\n\n";
 	foreach( $results as $date => $slots ) {
 		$m = "*".$date."* >>> ";
 		$m2 = implode(", ", $slots);
@@ -158,14 +158,26 @@ function slack($results)
 		$message .= $m;
 	}
 	
-	$message .= "\nhttps://www.ssdcl.com.sg/Student/Booking/AddBooking?bookingType=PL\n\n";
-
+	$attachments = [
+		[
+			  "fallback" => "Book your class at https://www.ssdcl.com.sg/Student/Booking/AddBooking?bookingType=PL",
+			  "actions" => [
+				[
+				  "type" => "button",
+				  "text" => "Book lessons :car:",
+				  "url" => "https://www.ssdcl.com.sg/Student/Booking/AddBooking?bookingType=PL"
+				]
+			  ]
+		]
+	];	
+	
 	$ch = curl_init("https://slack.com/api/chat.postMessage");
 	$data = http_build_query([
 		"token" => SLACK_TOKEN,
 		"channel" => SLACK_CHANNEL, //"#mychannel",
 		"text" => $message, //"Hello, Foo-Bar channel message.",
 		"username" => SLACK_USERNAME,
+		"attachments" => json_encode($attachments)
 	]);
 	curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
 	curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
