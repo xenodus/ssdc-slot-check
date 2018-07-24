@@ -8,7 +8,9 @@ Run composer install to setup required dependencies.
 
 Rename sample_config.php to config.php and fill in config values.
 
-Add to crontab to automate checks back on desired frequency.
+Access scrapper.php via browser to execute script.
+
+Add scrapper.php to crontab to automate checks back on desired frequency.
 
 ## Authors
 
