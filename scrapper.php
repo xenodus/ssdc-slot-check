@@ -160,7 +160,7 @@ function slack($results)
 	
 	$attachments = [
 		[
-			  "fallback" => "Book your class at https://www.ssdcl.com.sg/Student/Booking/AddBooking?bookingType=PL",
+			  "fallback" => "Book your lessons at https://www.ssdcl.com.sg/Student/Booking/AddBooking?bookingType=PL",
 			  "actions" => [
 				[
 				  "type" => "button",
