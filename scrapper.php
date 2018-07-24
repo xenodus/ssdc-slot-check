@@ -1,4 +1,5 @@
 <?php
+//die();
 /**********************************
 PHP Scrapper to automate checking of Singapore Safety Driving Centre's website for available practical lesson slots within the next two weeks that are cancelled or sold by others (try sell).
 -----------------------------------
@@ -13,23 +14,34 @@ use Goutte\Client;
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/config.php';
 
-$results = [];
+$all_results = [];
 
-// Checking current or defined week
-$date = defined('START_DATE') ? date_format(date_create_from_format('dmy', START_DATE), 'd M Y') : date('d M Y');
-doCheck( $date, $results );
-// Checking week after
-$week_after_date = date('d M Y', strtotime("$date +7 day"));
-doCheck( $week_after_date, $results );
+foreach( START_DATES as $date ) {
+	
+	$results = [];
+	
+	if( $date == 'TODAY' )
+		$date = date('d M Y');
+	else
+		$date = date_format(date_create_from_format('dmy', $date), 'd M Y');
+	
+	doCheck( $date, $results );
+	// Checking week after
+	$week_after_date = date('d M Y', strtotime("$date +7 day"));
+	doCheck( $week_after_date, $results );
+	
+	$all_results = array_merge($all_results, $results);
+}
 
-// Process result
-if( $results ) {
-	sendNotification($results);
+// Process results
+if( $all_results ) {
+	sendNotification($all_results);
+	slack($all_results);
 }
 
 // Output results
 header('Content-Type: application/json');
-echo json_encode($results, JSON_PRETTY_PRINT);
+echo json_encode($all_results, JSON_PRETTY_PRINT);
 
 function doCheck($date, &$results) {
 	$client = new Client();
@@ -124,4 +136,43 @@ function sendNotification($results) {
 	} catch (Exception $e) {
 	    // echo 'Message could not be sent. Mailer Error: ', $mail->ErrorInfo;
 	}
+}
+
+/**
+ * Send a Message to a Slack Channel.
+ *
+ * In order to get the API Token visit: https://api.slack.com/custom-integrations/legacy-tokens
+ * The token will look something like this `xoxo-2100000415-0000000000-0000000000-ab1ab1`.
+ * 
+ * @param string $message The message to post into a channel.
+ * @param string $channel The name of the channel prefixed with #, example #foobar
+ * @return boolean
+ */
+function slack($results)
+{
+	$message = "\n*OPEN PRACTICAL SLOTS AT SSDC :car:*\n\n";
+	foreach( $results as $date => $slots ) {
+		$m = "*".$date."* >>> ";
+		$m2 = implode(", ", $slots);
+		$m .= $m2."\n";
+		$message .= $m;
+	}
+	
+	$message .= "\nhttps://www.ssdcl.com.sg/Student/Booking/AddBooking?bookingType=PL\n\n";
+	
+    $ch = curl_init("https://slack.com/api/chat.postMessage");
+    $data = http_build_query([
+        "token" => SLACK_TOKEN,
+    	"channel" => SLACK_CHANNEL, //"#mychannel",
+    	"text" => $message, //"Hello, Foo-Bar channel message.",
+    	"username" => SLACK_USERNAME,
+    ]);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $result = curl_exec($ch);
+    curl_close($ch);
+    
+    return $result;
 }
